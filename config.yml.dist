@@ -5,3 +5,7 @@ romm:
 
 theme:
   font_path: "assets/fonts/DejaVuSans.ttf"
+
+system:
+  max_fps: 60
+  show_fps: true

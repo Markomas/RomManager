@@ -15,6 +15,10 @@ type Config struct {
 	Theme struct {
 		FontPath string `yaml:"font_path"`
 	} `yaml:"theme"`
+	System struct {
+		MaxFPS  int  `yaml:"max_fps"`
+		ShowFPS bool `yaml:"show_fps"`
+	}
 }
 
 func New(configPath string) (*Config, error) {

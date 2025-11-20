@@ -28,7 +28,7 @@ func NewMenuScene(renderer *ui_render.Renderer) Scene {
 	boxLayoutElement := ui.LayoutElement{FullWidth: true, Height: 30, UiElement: box}
 
 	box2 := ui.NewBox(sdl.Color{R: 0, G: 255, B: 0, A: 255}, renderer)
-	box2LayoutElement := ui.LayoutElement{FullWidth: true, FullHeight: true, UiElement: box2}
+	box2LayoutElement := ui.LayoutElement{FullWidth: true, FullHeight: false, UiElement: box2}
 
 	box3 := ui.NewBox(sdl.Color{R: 255, G: 0, B: 255, A: 255}, renderer)
 	box3LayoutElement := ui.LayoutElement{FullWidth: true, Height: 30, UiElement: box3}

@@ -10,14 +10,6 @@ type VerticalLayout struct {
 	y        int32
 }
 
-type LayoutElement struct {
-	FullWidth  bool
-	Width      int32
-	FullHeight bool
-	Height     int32
-	UiElement  UiElement
-}
-
 func (l *VerticalLayout) Draw() {
 	fixedHeightSum := int32(0)
 	fullHeightCount := 0

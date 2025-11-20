@@ -101,9 +101,13 @@ func (a *App) update() {
 
 func (a *App) render() {
 	a.menuScene.Draw()
-	a.uiRender.DrawText(fmt.Sprintf("FPS: %.2f", a.lastFPS), 10, 10, 100, 32, sdl.Color{R: 255, G: 255, B: 255, A: 255})
+	if a.config.System.ShowFPS {
+		a.uiRender.DrawText(fmt.Sprintf("FPS: %.2f", a.lastFPS), 10, 10, 0, 32, sdl.Color{R: 255, G: 255, B: 255, A: 255})
+	}
 	a.r.Present()
-	sdl.Delay(16) // Limit to 60 FPS (1000ms / 60)
+	if a.config.System.MaxFPS > 0 {
+		sdl.Delay(uint32(1000 / float64(a.config.System.MaxFPS)))
+	}
 }
 
 func (a *App) Destroy() {
