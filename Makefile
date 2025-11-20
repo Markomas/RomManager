@@ -35,9 +35,10 @@ build-aarch64-binary:
 
 build-aarch64-dist: build-aarch64-binary
 	@echo "Building distribution for linux/arm64..."
-	@cp script/RomManager.sh dist/RomManager.sh
-	@cp assets -r dist/RomManager/
 	@mkdir -p dist/RomManager
+	@cp script/RomManager.sh dist/RomManager.sh
+	@cp assets -R dist/RomManager/
+	@cp config.yml.dist dist/RomManager/
 	@cp bin/$(BINARY_NAME)-linux-aarch64 dist/RomManager/
 
 

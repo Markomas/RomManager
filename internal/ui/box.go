@@ -1,19 +1,17 @@
 package ui
 
 import (
+	"RomManager/internal/config"
 	"RomManager/internal/input"
-	"RomManager/internal/ui_render"
-
-	"github.com/veandco/go-sdl2/sdl"
 )
 
 type Box struct {
-	renderer *ui_render.Renderer
+	renderer *Renderer
 	x        int32
 	y        int32
 	width    int32
 	height   int32
-	color    sdl.Color
+	color    config.Color
 }
 
 func (b *Box) SetSize(width, height int32) {
@@ -33,7 +31,7 @@ func (b *Box) Draw() {
 func (b *Box) HandleInput(action input.Action) {
 }
 
-func NewBox(color sdl.Color, renderer *ui_render.Renderer) UiElement {
+func NewBox(color config.Color, renderer *Renderer) UiElement {
 	x, y, width, height := int32(0), int32(0), int32(0), int32(0)
 	return &Box{renderer: renderer, x: x, y: y, width: width, height: height, color: color}
 }

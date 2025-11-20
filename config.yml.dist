@@ -5,7 +5,13 @@ romm:
 
 theme:
   font_path: "assets/fonts/DejaVuSans.ttf"
+  title_color: "#F1F3E0"
+  title_background_color: "#778873"
+  title_font_size: 24
+  title_line_color: "#F1F3E0"
+  title_line_width: 2
+  background_color: "#778873"
 
 system:
-  max_fps: 60
+  max_fps: 30
   show_fps: true

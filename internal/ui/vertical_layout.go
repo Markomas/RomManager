@@ -47,7 +47,9 @@ func (l *VerticalLayout) Draw() {
 }
 
 func (l *VerticalLayout) HandleInput(action input.Action) {
-
+	for _, element := range l.elements {
+		element.UiElement.HandleInput(action)
+	}
 }
 
 func (l *VerticalLayout) SetSize(width, height int32) {

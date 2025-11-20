@@ -2,8 +2,9 @@ package app
 
 import (
 	"RomManager/internal/config"
+	"RomManager/internal/input"
 	"RomManager/internal/scene"
-	"RomManager/internal/ui_render"
+	"RomManager/internal/ui"
 	"fmt"
 	"runtime"
 
@@ -13,15 +14,16 @@ import (
 )
 
 type App struct {
-	config     *config.Config
-	r          *sdl.Renderer
-	w          *sdl.Window
-	running    bool
-	menuScene  scene.Scene
-	uiRender   *ui_render.Renderer
-	frameCount uint64
-	lastFPS    float64
-	lastTime   uint64
+	config      *config.Config
+	r           *sdl.Renderer
+	w           *sdl.Window
+	running     bool
+	menuScene   scene.Scene
+	uiRender    *ui.Renderer
+	frameCount  uint64
+	lastFPS     float64
+	lastTime    uint64
+	inputMapper *input.Mapper
 }
 
 func New(c *config.Config) (*App, error) {
@@ -57,11 +59,13 @@ func New(c *config.Config) (*App, error) {
 		return nil, err
 	}
 
-	uiRender := ui_render.New(r, w, c)
+	uiRender := ui.New(r, w, c)
 
-	menuScene := scene.NewMenuScene(uiRender)
+	menuScene := scene.NewMenuScene(uiRender, c)
 
-	return &App{config: c, w: w, r: r, uiRender: uiRender, menuScene: menuScene}, nil
+	inputMapper := input.New()
+
+	return &App{config: c, w: w, r: r, uiRender: uiRender, menuScene: menuScene, inputMapper: inputMapper}, nil
 }
 
 func (a *App) Run() {
@@ -69,7 +73,7 @@ func (a *App) Run() {
 	a.lastTime = sdl.GetTicks64()
 	for a.running {
 		a.handleEvents()
-		//a.update()
+		a.update()
 		a.render()
 
 		a.frameCount++
@@ -92,17 +96,23 @@ func (a *App) handleEvents() {
 				a.running = false
 			}
 		}
+		a.inputMapper.ConsumeSDLEvent(event)
 	}
 }
 
 func (a *App) update() {
-	// Game logic updates will go here
+	a.inputMapper.ProcessHeldActions()
+	for _, action := range a.inputMapper.DrainActions() {
+		a.menuScene.HandleInput(action)
+	}
 }
 
 func (a *App) render() {
+	a.r.Clear()
+
 	a.menuScene.Draw()
 	if a.config.System.ShowFPS {
-		a.uiRender.DrawText(fmt.Sprintf("FPS: %.2f", a.lastFPS), 10, 10, 0, 32, sdl.Color{R: 255, G: 255, B: 255, A: 255})
+		a.uiRender.DrawText(fmt.Sprintf("FPS: %.0f", a.lastFPS), 10, 10, 0, 16, config.Color{R: 255, G: 255, B: 255, A: 255}, ui.AlignRight)
 	}
 	a.r.Present()
 	if a.config.System.MaxFPS > 0 {
