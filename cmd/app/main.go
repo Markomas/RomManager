@@ -4,6 +4,7 @@ import (
 	"RomManager/internal/app"
 	"RomManager/internal/config"
 	"log"
+	_ "net/http/pprof"
 )
 
 func main() {

@@ -13,6 +13,7 @@ DEVICE_PORTS_FOLDER := /roms/ports
 
 upload: build-aarch64-dist
 	@echo "Uploading to device"
+	@ssh $(DEVICE_USER)@$(DEVICE_HOST) "pkill rom-manager-linux-aarch64 &"
 	scp -r dist/* $(DEVICE_USER)@$(DEVICE_HOST):$(DEVICE_PORTS_FOLDER)
 
 # Build the application for linux/aarch64 using Docker

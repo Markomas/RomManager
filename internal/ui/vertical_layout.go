@@ -3,7 +3,7 @@ package ui
 import "RomManager/internal/input"
 
 type VerticalLayout struct {
-	elements []LayoutElement
+	elements []*LayoutElement
 	width    int32
 	height   int32
 	x        int32
@@ -14,6 +14,9 @@ func (l *VerticalLayout) Draw() {
 	fixedHeightSum := int32(0)
 	fullHeightCount := 0
 	for _, element := range l.elements {
+		if element.Hidden {
+			continue
+		}
 		if element.FullHeight {
 			fullHeightCount++
 		} else {
@@ -29,6 +32,9 @@ func (l *VerticalLayout) Draw() {
 
 	currentY := l.y
 	for _, element := range l.elements {
+		if element.Hidden {
+			continue
+		}
 		width := element.Width
 		if element.FullWidth {
 			width = l.width
@@ -62,11 +68,11 @@ func (l *VerticalLayout) SetPosition(x, y int32) {
 	l.y = y
 }
 
-func (l *VerticalLayout) AddElement(element LayoutElement) {
+func (l *VerticalLayout) AddElement(element *LayoutElement) {
 	l.elements = append(l.elements, element)
 }
 
 func NewVerticalLayout() UiElement {
-	elements := make([]LayoutElement, 0)
+	elements := make([]*LayoutElement, 0)
 	return &VerticalLayout{elements: elements, width: 0, height: 0, x: 0, y: 0}
 }

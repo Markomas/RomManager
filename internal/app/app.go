@@ -83,6 +83,15 @@ func (a *App) Run() {
 			a.lastTime = currentTime
 			a.frameCount = 0
 		}
+
+		if a.config.System.MaxFPS > 0 {
+			frameTime := sdl.GetTicks64() - currentTime
+			targetFrameTime := uint64(1000.0 / float64(a.config.System.MaxFPS))
+			if frameTime < targetFrameTime {
+				sdl.Delay(uint32(targetFrameTime - frameTime))
+			}
+		}
+
 	}
 }
 
@@ -103,6 +112,7 @@ func (a *App) handleEvents() {
 func (a *App) update() {
 	a.inputMapper.ProcessHeldActions()
 	for _, action := range a.inputMapper.DrainActions() {
+		fmt.Println("Handling input:", action)
 		a.menuScene.HandleInput(action)
 	}
 }
@@ -115,9 +125,6 @@ func (a *App) render() {
 		a.uiRender.DrawText(fmt.Sprintf("FPS: %.0f", a.lastFPS), 10, 10, 0, 16, config.Color{R: 255, G: 255, B: 255, A: 255}, ui.AlignRight)
 	}
 	a.r.Present()
-	if a.config.System.MaxFPS > 0 {
-		sdl.Delay(uint32(1000 / float64(a.config.System.MaxFPS)))
-	}
 }
 
 func (a *App) Destroy() {

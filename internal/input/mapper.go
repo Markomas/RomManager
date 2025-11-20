@@ -7,15 +7,20 @@ import (
 )
 
 const (
-	repeatDelay    = 500 // ms
-	repeatInterval = 10  // ms
+	repeatDelay         = 500 // ms
+	repeatInterval      = 50  // ms
+	minRepeatInterval   = 1   // ms
+	repeatAccelInterval = 100 // ms, how often to speed up
+	repeatAccelStep     = 5   // ms, how much to speed up by
 )
 
 type heldKey struct {
-	action        Action
-	pressTime     uint32
-	nextRepeat    uint32
-	isInitialSent bool
+	action          Action
+	pressTime       uint32
+	nextRepeat      uint32
+	nextAccel       uint32
+	currentInterval uint32
+	isInitialSent   bool
 }
 
 type Mapper struct {
@@ -49,9 +54,20 @@ func (m *Mapper) ProcessHeldActions() {
 			m.push(k.action)
 			k.isInitialSent = true
 			k.nextRepeat = now + repeatDelay
+			k.nextAccel = now + repeatDelay + repeatAccelInterval
+			k.currentInterval = repeatInterval
 		} else if now >= k.nextRepeat {
 			m.push(k.action)
-			k.nextRepeat = now + repeatInterval
+			if now >= k.nextAccel {
+				if k.currentInterval > minRepeatInterval {
+					k.currentInterval -= repeatAccelStep
+					if k.currentInterval < minRepeatInterval {
+						k.currentInterval = minRepeatInterval
+					}
+				}
+				k.nextAccel = now + repeatAccelInterval
+			}
+			k.nextRepeat = now + k.currentInterval
 		}
 	}
 	for _, b := range m.heldButtons {
@@ -59,9 +75,20 @@ func (m *Mapper) ProcessHeldActions() {
 			m.push(b.action)
 			b.isInitialSent = true
 			b.nextRepeat = now + repeatDelay
+			b.nextAccel = now + repeatDelay + repeatAccelInterval
+			b.currentInterval = repeatInterval
 		} else if now >= b.nextRepeat {
 			m.push(b.action)
-			b.nextRepeat = now + repeatInterval
+			if now >= b.nextAccel {
+				if b.currentInterval > minRepeatInterval {
+					b.currentInterval -= repeatAccelStep
+					if b.currentInterval < minRepeatInterval {
+						b.currentInterval = minRepeatInterval
+					}
+				}
+				b.nextAccel = now + repeatAccelInterval
+			}
+			b.nextRepeat = now + b.currentInterval
 		}
 	}
 }

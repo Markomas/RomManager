@@ -15,4 +15,5 @@ type LayoutElement struct {
 	FullHeight bool
 	Height     int32
 	UiElement  UiElement
+	Hidden     bool
 }
