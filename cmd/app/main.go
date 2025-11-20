@@ -1,21 +1,61 @@
 package main
 
 import (
-  "fmt"
+	"fmt"
+	"os"
+
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 //TIP <p>To run your code, right-click the code and select <b>Run</b>.</p> <p>Alternatively, click
 // the <icon src="AllIcons.Actions.Execute"/> icon in the gutter and select the <b>Run</b> menu item from here.</p>
 
 func main() {
-  //TIP <p>Press <shortcut actionId="ShowIntentionActions"/> when your caret is at the underlined text
-  // to see how GoLand suggests fixing the warning.</p><p>Alternatively, if available, click the lightbulb to view possible fixes.</p>
-  s := "gopher"
-  fmt.Printf("Hello and welcome, %s!\n", s)
+	if err := sdl.Init(sdl.INIT_VIDEO); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to initialize SDL: %s\n", err)
+		os.Exit(1)
+	}
+	defer sdl.Quit()
 
-  for i := 1; i <= 5; i++ {
-	//TIP <p>To start your debugging session, right-click your code in the editor and select the Debug option.</p> <p>We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-	// for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.</p>
-	fmt.Println("i =", 100/i)
-  }
+	displayMode, err := sdl.GetDesktopDisplayMode(0)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to get display mode: %s\n", err)
+		os.Exit(1)
+	}
+
+	window, err := sdl.CreateWindow(
+		"Red Square Fullscreen",
+		sdl.WINDOWPOS_UNDEFINED,
+		sdl.WINDOWPOS_UNDEFINED,
+		displayMode.W,
+		displayMode.H,
+		sdl.WINDOW_FULLSCREEN_DESKTOP,
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to create window: %s\n", err)
+		os.Exit(1)
+	}
+	defer window.Destroy()
+
+	renderer, err := sdl.CreateRenderer(window, -1, sdl.RENDERER_ACCELERATED)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to create renderer: %s\n", err)
+		os.Exit(1)
+	}
+	defer renderer.Destroy()
+
+	renderer.SetDrawColor(255, 0, 0, 255) // Set draw color to red
+	renderer.Clear()
+	renderer.Present()
+
+	running := true
+	for running {
+		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
+			switch event.(type) {
+			case *sdl.QuitEvent:
+				running = false
+				break
+			}
+		}
+	}
 }

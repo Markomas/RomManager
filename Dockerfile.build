@@ -1,0 +1,14 @@
+# Use the official Go image that matches your project's version.
+FROM golang:1.24
+
+# Add arm64 architecture and install build dependencies for go-sdl2 cross-compilation.
+RUN apt-get update && \
+    dpkg --add-architecture arm64 && \
+    apt-get update && \
+    apt-get install -y \
+    gcc-aarch64-linux-gnu \
+    binutils-aarch64-linux-gnu \
+    libsdl2-dev:arm64
+
+# Set the working directory inside the container.
+WORKDIR /app
