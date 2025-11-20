@@ -8,7 +8,9 @@ RUN apt-get update && \
     apt-get install -y \
     gcc-aarch64-linux-gnu \
     binutils-aarch64-linux-gnu \
-    libsdl2-dev:arm64
+    libsdl2-dev:arm64 \
+    libsdl2-image-dev:arm64 \
+    libsdl2-ttf-dev:arm64
 
 # Set the working directory inside the container.
 WORKDIR /app

@@ -1,0 +1,7 @@
+romm:
+  username: demo
+  password: demo
+  host: https://demo.romm.app
+
+theme:
+  font_path: "assets/fonts/DejaVuSans.ttf"
