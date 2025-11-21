@@ -2,20 +2,33 @@ package ui
 
 import (
 	"RomManager/internal/config"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
 	"time"
 
+	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
 )
 
 type Renderer struct {
-	renderer  *sdl.Renderer
-	window    *sdl.Window
-	config    *config.Config
-	fontCache map[string]*ttf.Font
-
-	textCache map[textKey]*textTexture
+	renderer           *sdl.Renderer
+	window             *sdl.Window
+	config             *config.Config
+	fontCache          map[string]*ttf.Font
+	textCache          map[textKey]*textTexture
+	imageCache         map[string]*sdl.Texture
+	scrollTracker      map[textKey]time.Time
+	downloadingImages  map[string]bool
+	downloadingImagesM sync.Mutex
 }
 
 type textKey struct {
@@ -33,11 +46,14 @@ type textTexture struct {
 
 func New(renderer *sdl.Renderer, w *sdl.Window, c *config.Config) *Renderer {
 	return &Renderer{
-		renderer:  renderer,
-		window:    w,
-		config:    c,
-		fontCache: make(map[string]*ttf.Font),
-		textCache: make(map[textKey]*textTexture),
+		renderer:          renderer,
+		window:            w,
+		config:            c,
+		fontCache:         make(map[string]*ttf.Font),
+		textCache:         make(map[textKey]*textTexture),
+		imageCache:        make(map[string]*sdl.Texture),
+		scrollTracker:     make(map[textKey]time.Time),
+		downloadingImages: make(map[string]bool),
 	}
 }
 
@@ -73,21 +89,21 @@ func (r *Renderer) getTextTexture(text string, fontSize int, color config.Color)
 		return nil, err
 	}
 
-	surface, err := font.RenderUTF8Solid(text, sdl.Color(color))
+	s, err := font.RenderUTF8Solid(text, sdl.Color(color))
 	if err != nil {
 		return nil, err
 	}
-	defer surface.Free()
+	defer s.Free()
 
-	texture, err := r.renderer.CreateTextureFromSurface(surface)
+	texture, err := r.renderer.CreateTextureFromSurface(s)
 	if err != nil {
 		return nil, err
 	}
 
 	tt := &textTexture{
 		Texture: texture,
-		Width:   surface.W,
-		Height:  surface.H,
+		Width:   s.W,
+		Height:  s.H,
 	}
 
 	r.textCache[key] = tt
@@ -100,6 +116,9 @@ func (r *Renderer) Destroy() {
 	}
 	for _, tt := range r.textCache {
 		tt.Texture.Destroy()
+	}
+	for _, texture := range r.imageCache {
+		texture.Destroy()
 	}
 }
 
@@ -127,7 +146,11 @@ func (r *Renderer) DrawTextClipped(text string, x int32, y int32, clipRect sdl.R
 	r.renderer.SetClipRect(nil)
 }
 
-func (r *Renderer) DrawText(text string, x int32, y int32, maxWidth int32, fontSize int, color config.Color, align Align) {
+func (r *Renderer) DrawText(text string, x int32, y int32, maxWidth int32, fontSize int, color config.Color, align Align, scrollOnOverflow bool) {
+	if len(text) == 0 {
+		return
+	}
+
 	if maxWidth == 0 {
 		windowWidth, _ := r.window.GetSize()
 		maxWidth = windowWidth
@@ -142,7 +165,6 @@ func (r *Renderer) DrawText(text string, x int32, y int32, maxWidth int32, fontS
 	textWidth := tt.Width
 
 	if textWidth <= maxWidth {
-		// Text fits, draw normally
 		var drawX int32
 		switch align {
 		case AlignCenter:
@@ -173,10 +195,27 @@ func (r *Renderer) DrawText(text string, x int32, y int32, maxWidth int32, fontS
 		totalCycleDuration = pauseDuration * 2.0
 	}
 
-	timeInCycle := float64(time.Now().UnixMilli()%int64(totalCycleDuration*1000)) / 1000.0
+	key := textKey{
+		Text:     text,
+		FontPath: r.config.Theme.FontPath,
+		Size:     fontSize,
+		Color:    color,
+	}
+
+	var timeInCycle float64
+	if scrollOnOverflow {
+		startTime, ok := r.scrollTracker[key]
+		if !ok {
+			startTime = time.Now()
+			r.scrollTracker[key] = startTime
+		}
+		timeInCycle = float64(time.Since(startTime).Milliseconds()%int64(totalCycleDuration*1000)) / 1000.0
+	} else {
+		delete(r.scrollTracker, key)
+	}
 
 	var scrollOffset int32
-	if timeInCycle < pauseDuration {
+	if !scrollOnOverflow || timeInCycle < pauseDuration {
 		scrollOffset = 0
 	} else if timeInCycle < pauseDuration+float64(scrollableWidth)/scrollSpeed {
 		scrollOffset = int32(scrollSpeed * (timeInCycle - pauseDuration))
@@ -204,4 +243,258 @@ func (r *Renderer) DrawRect(x int32, pos int32, width int32, height int32, color
 	r.renderer.SetDrawColor(color.R, color.G, color.B, color.A)
 	rect := sdl.Rect{X: x, Y: pos, W: width, H: height}
 	r.renderer.FillRect(&rect)
+}
+
+func (r *Renderer) downloadImage(url, localPath, cacheDir string) {
+	defer func() {
+		r.downloadingImagesM.Lock()
+		delete(r.downloadingImages, url)
+		r.downloadingImagesM.Unlock()
+	}()
+
+	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+		log.Printf("Failed to create image cache directory %s: %v", cacheDir, err)
+		return
+	}
+
+	tempPath := localPath + ".tmp"
+	// Ensure the temporary file is removed on exit, especially if an error occurs
+	defer os.Remove(tempPath)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Printf("Failed to download image from %s: %v", url, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Failed to download image from %s: status code %d", url, resp.StatusCode)
+		return
+	}
+
+	outFile, err := os.Create(tempPath)
+	if err != nil {
+		log.Printf("Failed to create temporary file %s: %v", tempPath, err)
+		return
+	}
+
+	_, err = io.Copy(outFile, resp.Body)
+	// Close the file handle before attempting to rename it.
+	outFile.Close()
+	if err != nil {
+		log.Printf("Failed to save image to %s: %v", tempPath, err)
+		return
+	}
+
+	// Atomically rename the temporary file to the final path.
+	if err := os.Rename(tempPath, localPath); err != nil {
+		log.Printf("Failed to rename temporary file %s to %s: %v", tempPath, localPath, err)
+	}
+}
+
+func (r *Renderer) DrawImage(path string, x int32, y int32, width int32, height int32) {
+	if path == "" {
+		return
+	}
+
+	textureCacheKey := path
+	imageLoadPath := path
+
+	// 1. Check if texture is already in cache
+	texture, ok := r.imageCache[textureCacheKey]
+	if !ok {
+		// It's not in cache, we might need to load it
+		isURL := strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")
+
+		if isURL {
+			cacheDir := filepath.Join(r.config.System.ImageTmpPath, "rommanager", "images")
+			hash := sha1.New()
+			hash.Write([]byte(path))
+			ext := filepath.Ext(path)
+			if strings.Contains(ext, ".php") {
+				ext = ".png"
+			}
+			fileName := hex.EncodeToString(hash.Sum(nil)) + ext
+			localPath := filepath.Join(cacheDir, fileName)
+			imageLoadPath = localPath
+
+			// 2. Check if file exists locally
+			if _, err := os.Stat(localPath); os.IsNotExist(err) {
+				// 3. File does not exist, check if it's downloading
+				r.downloadingImagesM.Lock()
+				isDownloading := r.downloadingImages[path]
+				r.downloadingImagesM.Unlock()
+
+				if !isDownloading {
+					// 4. Not downloading, so start download in background
+					r.downloadingImagesM.Lock()
+					r.downloadingImages[path] = true
+					r.downloadingImagesM.Unlock()
+					go r.downloadImage(path, localPath, cacheDir)
+				}
+				// In either case (downloading or just started), return for this frame
+				return
+			}
+		}
+
+		// 5. Load from disk (either local file or downloaded file)
+		surface, err := img.Load(imageLoadPath)
+		if err != nil {
+			log.Printf("Failed to load image %s: %v", imageLoadPath, err)
+			return
+		}
+		defer surface.Free()
+
+		newTexture, err := r.renderer.CreateTextureFromSurface(surface)
+		if err != nil {
+			log.Printf("Failed to create texture for %s: %v", imageLoadPath, err)
+			return
+		}
+		r.imageCache[textureCacheKey] = newTexture
+		texture = newTexture
+	}
+
+	// 6. Calculate dimensions and draw
+	_, _, originalWidth, originalHeight, err := texture.Query()
+	if err != nil {
+		log.Printf("Failed to query texture for %s: %v", path, err)
+		return
+	}
+
+	// Calculate new dimensions to maintain aspect ratio
+	aspectRatio := float32(originalWidth) / float32(originalHeight)
+	newWidth := width
+	newHeight := int32(float32(newWidth) / aspectRatio)
+
+	if newHeight > height {
+		newHeight = height
+		newWidth = int32(float32(newHeight) * aspectRatio)
+	}
+
+	// Center the image
+	newX := x + (width-newWidth)/2
+	newY := y + (height-newHeight)/2
+
+	dstRect := sdl.Rect{X: newX, Y: newY, W: newWidth, H: newHeight}
+	r.renderer.Copy(texture, nil, &dstRect)
+}
+
+func (r *Renderer) DrawTextBox(text string, x int32, y int32, width int32, height int32, size int, color config.Color, verticalAlign Align, horizontalAlign Align) {
+	if text == "" || width <= 0 || height <= 0 {
+		return
+	}
+
+	font, err := r.getFont(r.config.Theme.FontPath, size)
+	if err != nil {
+		log.Printf("Failed to get font: %v", err)
+		return
+	}
+
+	lineHeight := int32(font.Height())
+	if lineHeight == 0 {
+		return
+	}
+
+	words := strings.Split(text, " ")
+	var lines []string
+	currentLine := ""
+
+	for _, word := range words {
+		// Handle multiple words in one loop, separated by newlines in original text
+		subWords := strings.Split(word, "\n")
+		for i, subWord := range subWords {
+			testLine := currentLine
+			if len(currentLine) > 0 {
+				testLine += " "
+			}
+			testLine += subWord
+
+			lineWidth, _, _ := font.SizeUTF8(testLine)
+
+			if int32(lineWidth) > width {
+				if len(currentLine) > 0 {
+					lines = append(lines, currentLine)
+					currentLine = subWord
+				} else { // Word itself is longer than width
+					lines = append(lines, subWord)
+					currentLine = ""
+				}
+			} else {
+				currentLine = testLine
+			}
+
+			// Handle explicit newlines
+			if i < len(subWords)-1 {
+				lines = append(lines, currentLine)
+				currentLine = ""
+			}
+		}
+	}
+	if currentLine != "" {
+		lines = append(lines, currentLine)
+	}
+
+	maxLines := int(height / lineHeight)
+	if maxLines <= 0 {
+		return
+	}
+
+	if len(lines) > maxLines {
+		lines = lines[:maxLines]
+		lastLineIndex := len(lines) - 1
+		lastLine := lines[lastLineIndex]
+
+		ellipsis := "..."
+		for len(lastLine) > 0 {
+			lineWidth, _, _ := font.SizeUTF8(lastLine + ellipsis)
+			if int32(lineWidth) <= width {
+				break
+			}
+			// Remove last character
+			if len(lastLine) > 0 {
+				lastLine = lastLine[:len(lastLine)-1]
+			}
+		}
+		lines[lastLineIndex] = lastLine + ellipsis
+	}
+
+	totalTextHeight := int32(len(lines)) * lineHeight
+	var startY int32
+	switch verticalAlign {
+	case AlignVerticalTop:
+		startY = y
+	case AlignVerticalCenter:
+		startY = y + (height-totalTextHeight)/2
+	case AlignVerticalBottom:
+		startY = y + height - totalTextHeight
+	default:
+		startY = y
+	}
+
+	clipRect := sdl.Rect{X: x, Y: y, W: width, H: height}
+	r.renderer.SetClipRect(&clipRect)
+	defer r.renderer.SetClipRect(nil)
+
+	for i, line := range lines {
+		tt, err := r.getTextTexture(line, size, color)
+		if err != nil {
+			continue
+		}
+
+		var startX int32
+		switch horizontalAlign {
+		case AlignLeft:
+			startX = x
+		case AlignCenter:
+			startX = x + (width-tt.Width)/2
+		case AlignRight:
+			startX = x + width - tt.Width
+		default:
+			startX = x
+		}
+
+		dstRect := sdl.Rect{X: startX, Y: startY + int32(i)*lineHeight, W: tt.Width, H: tt.Height}
+		r.renderer.Copy(tt.Texture, nil, &dstRect)
+	}
 }

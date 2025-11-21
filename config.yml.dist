@@ -11,7 +11,20 @@ theme:
   title_line_color: "#F1F3E0"
   title_line_width: 2
   background_color: "#778873"
+  text_color: "#F1F3E0"
+  list_selected_text_color: "#F1F3E0"
+  list_selected_text_background_color: "#A1BC98"
+  list_text_font_size: 18
+  list_background_color: "#778873"
+  footer_text_font_size: 18
+  footer_text_color: "#F1F3E0"
+  footer_line_color: "#F1F3E0"
+  footer_background_color: "#778873"
+  image_background_color: "#D2DCB6"
+  text_background_color: "#778873"
+  text_padding: 10
 
 system:
-  max_fps: 30
+  max_fps: 120
   show_fps: true
+  image_tmp_path: "tmp"

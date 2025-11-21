@@ -1,8 +1,11 @@
 package app
 
 import (
+	"RomManager/internal/api"
 	"RomManager/internal/config"
+	"RomManager/internal/downloader"
 	"RomManager/internal/input"
+	"RomManager/internal/router"
 	"RomManager/internal/scene"
 	"RomManager/internal/ui"
 	"fmt"
@@ -18,12 +21,12 @@ type App struct {
 	r           *sdl.Renderer
 	w           *sdl.Window
 	running     bool
-	menuScene   scene.Scene
 	uiRender    *ui.Renderer
 	frameCount  uint64
 	lastFPS     float64
 	lastTime    uint64
 	inputMapper *input.Mapper
+	sceneRouter *router.Router
 }
 
 func New(c *config.Config) (*App, error) {
@@ -55,17 +58,23 @@ func New(c *config.Config) (*App, error) {
 		w, r, err = sdl.CreateWindowAndRenderer(displayMode.W, displayMode.H, sdl.WINDOW_FULLSCREEN_DESKTOP|sdl.WINDOW_ALLOW_HIGHDPI)
 	}
 
+	d := downloader.NewDownloader(c)
+
 	if err != nil {
 		return nil, err
 	}
 
 	uiRender := ui.New(r, w, c)
-
-	menuScene := scene.NewMenuScene(uiRender, c)
+	api := api.New(c)
+	sceneRouter := router.New()
+	menuScene := scene.NewMenuScene(uiRender, c, sceneRouter, api, d)
+	sceneRouter.AddScene(menuScene)
 
 	inputMapper := input.New()
 
-	return &App{config: c, w: w, r: r, uiRender: uiRender, menuScene: menuScene, inputMapper: inputMapper}, nil
+	d.Run()
+
+	return &App{config: c, w: w, r: r, uiRender: uiRender, sceneRouter: sceneRouter, inputMapper: inputMapper}, nil
 }
 
 func (a *App) Run() {
@@ -112,17 +121,16 @@ func (a *App) handleEvents() {
 func (a *App) update() {
 	a.inputMapper.ProcessHeldActions()
 	for _, action := range a.inputMapper.DrainActions() {
-		fmt.Println("Handling input:", action)
-		a.menuScene.HandleInput(action)
+		a.sceneRouter.HandleInput(action)
 	}
 }
 
 func (a *App) render() {
 	a.r.Clear()
 
-	a.menuScene.Draw()
+	a.sceneRouter.DrawCurrentScene()
 	if a.config.System.ShowFPS {
-		a.uiRender.DrawText(fmt.Sprintf("FPS: %.0f", a.lastFPS), 10, 10, 0, 16, config.Color{R: 255, G: 255, B: 255, A: 255}, ui.AlignRight)
+		a.uiRender.DrawText(fmt.Sprintf("FPS: %.0f", a.lastFPS), 10, 10, 0, 16, config.Color{R: 255, G: 255, B: 255, A: 255}, ui.AlignRight, false)
 	}
 	a.r.Present()
 }

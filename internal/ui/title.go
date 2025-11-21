@@ -29,7 +29,7 @@ func (t *Title) SetPosition(x, y int32) {
 
 func (t *Title) Draw() {
 	t.renderer.DrawBox(t.x, t.y, t.width, t.height, t.config.Theme.TitleBackgroundColor)
-	t.renderer.DrawText(t.text, t.x, t.y, t.width, t.config.Theme.TitleFontSize, t.config.Theme.TitleColor, AlignCenter)
+	t.renderer.DrawText(t.text, t.x, t.y, t.width, t.config.Theme.TitleFontSize, t.config.Theme.TitleColor, AlignCenter, false)
 	t.renderer.DrawLine(t.x, t.y+t.height-1, t.width, t.y+t.height-1, t.config.Theme.TitleLineColor)
 }
 

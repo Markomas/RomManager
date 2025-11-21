@@ -3,8 +3,13 @@ package ui
 import (
 	"RomManager/internal/config"
 	"RomManager/internal/input"
-	"fmt"
 )
+
+type MenuItem struct {
+	Label    string
+	Action   func()
+	OnChange func()
+}
 
 type List struct {
 	renderer      *Renderer
@@ -13,13 +18,14 @@ type List struct {
 	width         int32
 	y             int32
 	x             int32
-	items         []string
+	items         []MenuItem
 	selectedIndex int
 	padding       int32
 	topIndex      int
 }
 
 func (l *List) Draw() {
+	l.renderer.DrawRect(l.x, l.y, l.width, l.height, l.config.Theme.ListBackgroundColor)
 	itemHeight := int32(l.config.Theme.ListTextFontSize) + l.padding*2
 	if itemHeight <= 0 {
 		return
@@ -37,18 +43,19 @@ func (l *List) Draw() {
 
 		item := l.items[itemIndex]
 		textColor := l.config.Theme.TextColor
+		overflowScroll := false
 		if itemIndex == l.selectedIndex {
 			bgColor := l.config.Theme.ListSelectedTextBackgroundColor
 			l.renderer.DrawRect(l.x, yPos, l.width, itemHeight, bgColor)
 			textColor = l.config.Theme.ListSelectedTextColor
+			overflowScroll = true
 		}
 
-		l.renderer.DrawText(item, l.x+l.padding, yPos+l.padding, 0, l.config.Theme.ListTextFontSize, textColor, AlignLeft)
+		l.renderer.DrawText(item.Label, l.x+l.padding, yPos+l.padding, l.width, l.config.Theme.ListTextFontSize, textColor, AlignLeft, overflowScroll)
 	}
 }
 
 func (l *List) HandleInput(action input.Action) {
-	fmt.Printf("Handling input: %v\n", action)
 	itemHeight := int32(l.config.Theme.ListTextFontSize) + l.padding*2
 	if itemHeight <= 0 {
 		return
@@ -62,6 +69,11 @@ func (l *List) HandleInput(action input.Action) {
 			l.selectedIndex = 0
 		}
 		l.topIndex = l.selectedIndex
+		if l.selectedIndex < len(l.items) && l.items[l.selectedIndex].OnChange != nil {
+			l.items[l.selectedIndex].OnChange()
+		}
+
+		break
 	case input.ActionJumpDown:
 		l.selectedIndex += visibleItems
 		if l.selectedIndex >= len(l.items) {
@@ -74,6 +86,10 @@ func (l *List) HandleInput(action input.Action) {
 		if l.topIndex < 0 {
 			l.topIndex = 0
 		}
+		if l.selectedIndex < len(l.items) && l.items[l.selectedIndex].OnChange != nil {
+			l.items[l.selectedIndex].OnChange()
+		}
+		break
 	case input.ActionUp:
 		if l.selectedIndex > 0 {
 			l.selectedIndex--
@@ -81,6 +97,11 @@ func (l *List) HandleInput(action input.Action) {
 				l.topIndex = l.selectedIndex
 			}
 		}
+		if l.selectedIndex < len(l.items) && l.items[l.selectedIndex].OnChange != nil {
+			l.items[l.selectedIndex].OnChange()
+		}
+		l.items[l.selectedIndex].OnChange()
+		break
 	case input.ActionDown:
 		if l.selectedIndex < len(l.items)-1 {
 			l.selectedIndex++
@@ -88,6 +109,15 @@ func (l *List) HandleInput(action input.Action) {
 				l.topIndex = l.selectedIndex - visibleItems + 1
 			}
 		}
+		if l.selectedIndex < len(l.items) && l.items[l.selectedIndex].OnChange != nil {
+			l.items[l.selectedIndex].OnChange()
+		}
+		break
+	case input.ActionSelect:
+		if l.selectedIndex >= 0 && l.selectedIndex < len(l.items) {
+			l.items[l.selectedIndex].Action()
+		}
+
 	}
 }
 
@@ -101,7 +131,18 @@ func (l *List) SetPosition(x, y int32) {
 	l.y = y
 }
 
-func NewList(items []string, renderer *Renderer, c *config.Config) UiElement {
+func (l *List) AddItem(label string, action func(), onChange func()) {
+	l.items = append(l.items, MenuItem{Label: label, Action: action, OnChange: onChange})
+	if l.selectedIndex < len(l.items) && l.items[l.selectedIndex].OnChange != nil {
+		l.items[l.selectedIndex].OnChange()
+	}
+}
+
+func (l *List) ClearItems() {
+	l.items = make([]MenuItem, 0)
+}
+
+func NewList(items []MenuItem, renderer *Renderer, c *config.Config) UiElement {
 	return &List{
 		renderer:      renderer,
 		config:        c,
