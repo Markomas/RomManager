@@ -3,6 +3,7 @@ package app
 import (
 	"RomManager/internal/api"
 	"RomManager/internal/config"
+	"RomManager/internal/db"
 	"RomManager/internal/downloader"
 	"RomManager/internal/input"
 	"RomManager/internal/router"
@@ -27,6 +28,7 @@ type App struct {
 	lastTime    uint64
 	inputMapper *input.Mapper
 	sceneRouter *router.Router
+	downloader  *downloader.Downloader
 }
 
 func New(c *config.Config) (*App, error) {
@@ -58,23 +60,34 @@ func New(c *config.Config) (*App, error) {
 		w, r, err = sdl.CreateWindowAndRenderer(displayMode.W, displayMode.H, sdl.WINDOW_FULLSCREEN_DESKTOP|sdl.WINDOW_ALLOW_HIGHDPI)
 	}
 
-	d := downloader.NewDownloader(c)
-
 	if err != nil {
 		return nil, err
 	}
-
+	db2, err := db.New(c)
+	if err != nil {
+		return nil, err
+	}
+	d := downloader.NewDownloader(c, db2)
 	uiRender := ui.New(r, w, c)
-	api := api.New(c)
+	rommApi := api.New(c)
 	sceneRouter := router.New()
-	menuScene := scene.NewMenuScene(uiRender, c, sceneRouter, api, d)
+	menuScene := scene.NewMenuScene(uiRender, c, sceneRouter, rommApi, d)
 	sceneRouter.AddScene(menuScene)
 
 	inputMapper := input.New()
 
-	d.Run()
+	a := &App{
+		config:      c,
+		r:           r,
+		w:           w,
+		running:     true,
+		uiRender:    uiRender,
+		downloader:  d,
+		inputMapper: inputMapper,
+		sceneRouter: sceneRouter,
+	}
 
-	return &App{config: c, w: w, r: r, uiRender: uiRender, sceneRouter: sceneRouter, inputMapper: inputMapper}, nil
+	return a, nil
 }
 
 func (a *App) Run() {

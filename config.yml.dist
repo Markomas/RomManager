@@ -28,3 +28,4 @@ system:
   max_fps: 120
   show_fps: true
   image_tmp_path: "tmp"
+  db_path: "db.db"

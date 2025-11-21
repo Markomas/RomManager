@@ -48,7 +48,7 @@ type Config struct {
 		Host     string `yaml:"host"`
 	} `yaml:"romm"`
 	Theme struct {
-		FontPath                        string `yaml:"font_path"`
+		FontPath                        string `yaml:"font_path" default:"assets/fonts/DejaVuSans.ttf"`
 		TitleColor                      Color  `yaml:"title_color"`
 		TitleBackgroundColor            Color  `yaml:"title_background_color"`
 		TitleLineColor                  Color  `yaml:"title_line_color"`
@@ -69,9 +69,12 @@ type Config struct {
 		TextPadding                     int    `yaml:"text_padding"`
 	} `yaml:"theme"`
 	System struct {
-		MaxFPS       int    `yaml:"max_fps"`
-		ShowFPS      bool   `yaml:"show_fps"`
-		ImageTmpPath string `yaml:"image_tmp_path"`
+		MaxFPS                      int    `yaml:"max_fps"`
+		ShowFPS                     bool   `yaml:"show_fps"`
+		ImageTmpPath                string `yaml:"image_tmp_path"`
+		DBPath                      string `yaml:"db_path"`
+		DownloadQueueTimeoutSeconds int    `yaml:"download_queue_timeout_seconds"`
+		RomsPath                    string `yaml:"roms_path"`
 	} `yaml:"system"`
 }
 
