@@ -30,7 +30,7 @@ system:
   image_tmp_path: "tmp"
   db_path: "db.db"
   download_queue_timeout_seconds: 120
-  roms_path: "roms"
+  roms_path: "/roms"
 
 platform_folder_mapping:
   genesis-slash-megadrive: genesis
