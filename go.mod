@@ -10,6 +10,7 @@ require (
 )
 
 require (
+	github.com/Bobgy/go-mod-licenses v0.0.0-20210717001941-431caf1489ad // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/mattn/go-sqlite3 v1.14.32 // indirect

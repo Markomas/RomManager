@@ -10,7 +10,7 @@ DEVICE_HOST := 192.168.2.114
 DEVICE_USER := root
 DEVICE_PORTS_FOLDER := /roms/ports
 
-.PHONY: build-aarch64-binary-gui build-aarch64-binary-worker build-aarch64-dist build-aarch64 clean check-deps upload
+.PHONY: build-aarch64-binary-gui build-aarch64-binary-worker build-aarch64-dist build-aarch64 clean check-deps upload build-port
 
 upload: build-aarch64-dist
 	@echo "Uploading to device"
@@ -76,4 +76,15 @@ clean:
 	@echo "Cleaning up..."
 	@rm -rf bin
 	@echo "Clean complete."
+
+build-port: build-aarch64-dist
+	@echo "Packaging..."
+	@mkdir -p port
+	@cp -r dist/* port/
+	@cp script/* port/
+	@cp script/screenshot.png port/cover.png
+	@cp README.md port/
+	@cp LICENSE port/
+	@zip -r port rom-manager.zip
+
 

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<gameList>
+    <game>
+        <path>./RomManager.sh</path>
+        <name>RomManager</name>
+        <desc>RomManager is Download client for Romm App</desc>
+        <releasedate>20251019T000000</releasedate>
+        <developer>Markomas</developer>
+        <publisher>Markomas</publisher>
+        <genre>RPG</genre>
+        <image>./RomManager/cover.png</image>
+    </game>
+</gameList>

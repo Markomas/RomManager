@@ -1,0 +1,33 @@
+{
+  "version": 4,
+  "name": "RomManager.zip",
+  "items": [
+    "RomManager.sh",
+    "RomManager"
+  ],
+  "items_opt": [],
+  "attr": {
+    "title": "RomManager",
+    "porter": [
+      "Markomas"
+    ],
+    "desc": "RomManager is Download client for Romm App",
+    "desc_md": "RomManager is Download client for [Romm App](https://romm.app/)\n",
+    "inst": "After installation edit RomManager/config.yml",
+    "inst_md": null,
+    "genres": [
+      "other"
+    ],
+    "image": null,
+    "rtr": true,
+    "exp": true,
+    "runtime": [],
+    "store": [],
+    "availability": "full",
+    "reqs": [],
+    "arch": [
+      "aarch64"
+    ],
+    "min_glibc": ""
+  }
+}

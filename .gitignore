@@ -5,3 +5,5 @@ config.yml
 /tmp/
 /roms/
 /db.db
+/port/
+rom-manager.zip
