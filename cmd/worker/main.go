@@ -25,8 +25,7 @@ func main() {
 	for true {
 		job, err := db.GetNextRommDownloadJob()
 		if err != nil {
-			fmt.Println("No romm jobs available:", err)
-			time.Sleep(time.Second * 60)
+			time.Sleep(time.Second * 10)
 			continue
 		}
 		fmt.Println("Processing job:", job.ID)

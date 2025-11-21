@@ -45,6 +45,7 @@ func NewMenuScene(renderer *ui.Renderer, c *config.Config, router SceneManager, 
 	layout.(*ui.VerticalLayout).AddElement(titleLayoutElement)
 	menuItems := []ui.MenuItem{
 		{"Platforms", func() { router.AddScene(NewPlatformScene(renderer, c, m.router, api, d)) }, func() {}},
+		{"Downloads", func() { router.AddScene(NewDownloadsScene(renderer, c, m.router, api, d)) }, func() {}},
 	}
 	list := ui.NewList(menuItems, renderer, c)
 

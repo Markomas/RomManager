@@ -131,15 +131,22 @@ func (l *List) SetPosition(x, y int32) {
 	l.y = y
 }
 
-func (l *List) AddItem(label string, action func(), onChange func()) {
+func (l *List) AddItem(label string, action func(), onChange func()) int {
 	l.items = append(l.items, MenuItem{Label: label, Action: action, OnChange: onChange})
 	if l.selectedIndex < len(l.items) && l.items[l.selectedIndex].OnChange != nil {
 		l.items[l.selectedIndex].OnChange()
 	}
+	return len(l.items) - 1
 }
 
 func (l *List) ClearItems() {
 	l.items = make([]MenuItem, 0)
+}
+
+func (l *List) UpdateItemText(i int, text string) {
+	if i >= 0 && i < len(l.items) {
+		l.items[i].Label = text
+	}
 }
 
 func NewList(items []MenuItem, renderer *Renderer, c *config.Config) UiElement {

@@ -58,7 +58,11 @@ $GPTOKEYB "rom-manager-linux-${DEVICE_ARCH}" &
 pm_platform_helper "$GAMEDIR/rom-manager-linux-${DEVICE_ARCH}"
 
 # Now we launch the port's executable with multiarch support. Make sure to rename your file according to the architecture you built for. E.g. portexecutable.aarch64
-./rom-manager-linux-${DEVICE_ARCH} Launch the executable
+if ! pgrep -f "rom-manager-worker-linux-${DEVICE_ARCH}" > /dev/null; then
+  ./rom-manager-worker-linux-${DEVICE_ARCH} </dev/null & >> "$GAMEDIR/logs_worker.txt" &
+fi
+
+./rom-manager-linux-${DEVICE_ARCH}
 
 # Cleanup any running gptokeyb instances, and any platform specific stuff.
 pm_finish

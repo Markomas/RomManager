@@ -125,6 +125,7 @@ func NewRomsScene(id int, renderer *ui.Renderer, c *config.Config, router SceneM
 					fmt.Sprintf("%s (%s)", rom.Name, formatBytes(rom.FsSizeBytes)),
 					func() {
 						d.AddRom(rom)
+						footer.(*ui.Footer).SetText(fmt.Sprintf("Scheduled download for %s", rom.Name))
 					},
 					func() {
 						if rom.URLCover != "" {

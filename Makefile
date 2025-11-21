@@ -4,20 +4,22 @@ GO_VERSION := 1.24
 BINARY_NAME := rom-manager
 # The path to your main package
 MAIN_PACKAGE := ./cmd/app
+WORKER_PACKAGE := ./cmd/worker
 
 DEVICE_HOST := 192.168.2.114
 DEVICE_USER := root
 DEVICE_PORTS_FOLDER := /roms/ports
 
-.PHONY: build-aarch64-binary build-aarch64-dist build-aarch64 clean check-deps upload
+.PHONY: build-aarch64-binary-gui build-aarch64-binary-worker build-aarch64-dist build-aarch64 clean check-deps upload
 
 upload: build-aarch64-dist
 	@echo "Uploading to device"
 	@ssh $(DEVICE_USER)@$(DEVICE_HOST) "pkill rom-manager-linux-aarch64 &"
+	@ssh $(DEVICE_USER)@$(DEVICE_HOST) "pkill rom-manager-worker-linux-aarch64 &"
 	scp -r dist/* $(DEVICE_USER)@$(DEVICE_HOST):$(DEVICE_PORTS_FOLDER)
 
 # Build the application for linux/aarch64 using Docker
-build-aarch64-binary:
+build-aarch64-binary-gui:
 	@echo "Building for linux/arm64..."
 	@mkdir -p bin
 	@docker build -t rom-manager-builder -f Dockerfile.build .
@@ -34,13 +36,31 @@ build-aarch64-binary:
 		go build -buildvcs=false -o bin/$(BINARY_NAME)-linux-aarch64 $(MAIN_PACKAGE)
 	@echo "Build complete: bin/$(BINARY_NAME)-linux-aarch64"
 
-build-aarch64-dist: build-aarch64-binary
+build-aarch64-binary-worker:
+	@echo "Building for linux/arm64..."
+	@mkdir -p bin
+	@docker build -t rom-manager-builder -f Dockerfile.build .
+	@docker run --rm \
+		-v $(shell pwd):/app \
+		-v rom-manager-gomod:/go/pkg/mod \
+		-v rom-manager-gocache:/root/.cache/go-build \
+		-e GOOS=linux \
+		-e GOARCH=arm64 \
+		-e CGO_ENABLED=1 \
+		-e CC=aarch64-linux-gnu-gcc \
+		-e PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig \
+		rom-manager-builder \
+		go build -buildvcs=false -o bin/$(BINARY_NAME)-worker-linux-aarch64 $(WORKER_PACKAGE)
+	@echo "Build complete: bin/$(BINARY_NAME)-worker-linux-aarch64"
+
+build-aarch64-dist: build-aarch64-binary-gui build-aarch64-binary-worker
 	@echo "Building distribution for linux/arm64..."
 	@mkdir -p dist/RomManager
 	@cp script/RomManager.sh dist/RomManager.sh
 	@cp assets -R dist/RomManager/
 	@cp config.yml.dist dist/RomManager/
 	@cp bin/$(BINARY_NAME)-linux-aarch64 dist/RomManager/
+	@cp bin/$(BINARY_NAME)-worker-linux-aarch64 dist/RomManager/
 
 
 # Check dynamic dependencies of the aarch64 binary

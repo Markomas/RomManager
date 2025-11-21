@@ -30,3 +30,9 @@ func New(c *config.Config) (*DB, error) {
 func (d *DB) Close() {
 
 }
+
+func (d *DB) GetRommDownloadJobs() ([]entity.RommDownloadJob, error) {
+	var job []entity.RommDownloadJob
+	err := d.db.Order("completed ASC, progress ASC, id DESC").Find(&job).Error
+	return job, err
+}

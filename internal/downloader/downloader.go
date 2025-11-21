@@ -25,7 +25,6 @@ func (d *Downloader) AddRom(rom romm.Rom) {
 	d.db.CreateRommDownloadJob(&entity.RommDownloadJob{RommID: rom.ID, Name: rom.Name, Completed: nil, Progress: nil})
 }
 
-func (d *Downloader) Run() error {
-
-	return nil
+func (d *Downloader) GetDownloadJobs() ([]entity.RommDownloadJob, error) {
+	return d.db.GetRommDownloadJobs()
 }
