@@ -22,7 +22,7 @@ func NewDownloader(c *config.Config, d *db.DB) *Downloader {
 }
 
 func (d *Downloader) AddRom(rom romm.Rom) {
-	d.db.CreateRommDownloadJob(&entity.RommDownloadJob{RommID: rom.ID, Name: rom.Name, Completed: nil, Progress: nil})
+	d.db.CreateRommDownloadJob(&entity.RommDownloadJob{RommID: rom.ID, Name: rom.Name, Completed: nil, Progress: nil, Error: nil})
 }
 
 func (d *Downloader) GetDownloadJobs() ([]entity.RommDownloadJob, error) {

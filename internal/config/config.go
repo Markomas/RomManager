@@ -76,6 +76,7 @@ type Config struct {
 		DownloadQueueTimeoutSeconds int    `yaml:"download_queue_timeout_seconds"`
 		RomsPath                    string `yaml:"roms_path"`
 	} `yaml:"system"`
+	PlatformFolderMapping map[string]string `yaml:"platform_folder_mapping"`
 }
 
 func New(configPath string) (*Config, error) {

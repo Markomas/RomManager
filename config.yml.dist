@@ -1,6 +1,6 @@
 romm:
-  username: demo
-  password: demo
+  username:
+  password:
   host: https://demo.romm.app
 
 theme:
@@ -29,3 +29,6 @@ system:
   show_fps: true
   image_tmp_path: "tmp"
   db_path: "db.db"
+
+platform_folder_mapping:
+  genesis-slash-megadrive: genesis

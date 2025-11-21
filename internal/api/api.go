@@ -165,7 +165,7 @@ func (r *Romm) DownloadRomm(rommID int, progress func(progress float64)) error {
 
 	//TODO download supporting images
 
-	outputFilePath := fmt.Sprintf("%s/%s/%s", r.config.System.RomsPath, rom.PlatformFsSlug, rom.FsName)
+	outputFilePath := r.getLocalRomPath(rom)
 	err = os.MkdirAll(filepath.Dir(outputFilePath), 0755)
 	if err != nil {
 		return err
@@ -227,6 +227,14 @@ func (r *Romm) DownloadRomm(rommID int, progress func(progress float64)) error {
 	}
 
 	return nil
+}
+
+func (r *Romm) getLocalRomPath(rom *romm.Rom) string {
+	platformFolder := rom.PlatformFsSlug
+	if mappedFolder, ok := r.config.PlatformFolderMapping[rom.PlatformFsSlug]; ok {
+		platformFolder = mappedFolder
+	}
+	return fmt.Sprintf("%s/%s/%s", r.config.System.RomsPath, platformFolder, rom.FsName)
 }
 
 func calculateFileSha1(filePath string) (string, error) {

@@ -13,5 +13,5 @@ type RommDownloadJob struct {
 	Completed  *bool
 	Progress   *float64
 	LockedTill *time.Time
-	Error      string
+	Error      *string
 }

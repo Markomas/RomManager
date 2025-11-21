@@ -17,7 +17,7 @@ func (d *DB) CreateRommDownloadJob(e *entity.RommDownloadJob) {
 }
 func (d *DB) GetNextRommDownloadJob() (*entity.RommDownloadJob, error) {
 	var job entity.RommDownloadJob
-	d.db.Where("completed IS NULL AND (locked_till < ? OR locked_till IS NULL)", time.Now()).First(&job)
+	d.db.Where("completed IS NULL AND (locked_till < ? OR locked_till IS NULL) and error IS NULL", time.Now()).First(&job)
 	if job.ID != 0 {
 		d.db.Model(&job).Update(
 			"locked_till",

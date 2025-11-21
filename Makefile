@@ -79,12 +79,17 @@ clean:
 
 build-port: build-aarch64-dist
 	@echo "Packaging..."
+	@rm -rf port
+	@rm rom-manager.zip
 	@mkdir -p port
 	@cp -r dist/* port/
 	@cp script/* port/
 	@cp script/screenshot.png port/cover.png
+	@cp config.yml.dist port/RomManager/config.yml
 	@cp README.md port/
 	@cp LICENSE port/
-	@zip -r port rom-manager.zip
+	@echo "Creating zip from port folder"
+	@cd port && zip -r ../rom-manager.zip *
+	@echo "Packaging complete."
 
 
