@@ -47,7 +47,7 @@ func (d *DB) UpdateRommDownloadJobProgress(jobId uint, progress float64) error {
 	return nil
 }
 
-func (d *DB) UpdateRommDownloadJobProgressAsCompleted(i uint, err string) {
+func (d *DB) UpdateRommDownloadJobProgressAsCompleted(i uint, err *string) {
 	d.db.Model(&entity.RommDownloadJob{}).Where("id =?", i).Updates(map[string]interface{}{
 		"completed":   true,
 		"locked_till": nil,

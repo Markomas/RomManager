@@ -40,6 +40,14 @@ func main() {
 			fmt.Println("Error downloading romm:", err)
 		}
 		fmt.Println("Romm download completed")
-		db.UpdateRommDownloadJobProgressAsCompleted(job.ID, err.Error())
+
+		var erroras *string
+		if err != nil {
+			errStr := err.Error()
+			erroras = &errStr
+		} else {
+			erroras = nil
+		}
+		db.UpdateRommDownloadJobProgressAsCompleted(job.ID, erroras)
 	}
 }
