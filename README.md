@@ -22,7 +22,19 @@ RomManager is a handheld client for the Romm App, designed to help you manage an
 
 
 ### Building from Source
-....
+
+```make build-port```
+
+### Instalation
+
+Copy `rom-manager.zip` to `/storage/roms/ports/PortMaster/autoinstall` and start PortMaster (it should auto install it)
+
+Edit `/storage/roms/ports/RomManager/config.yml`
+
+### Features
+
+- **Rom downloading from Romm.app**
+- **Background downloading** (once an application starts, it spawns a background process which continues downloading even if the application is closed.
 
 
 ## License
