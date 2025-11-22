@@ -20,7 +20,7 @@ type Rom struct {
 	TgdbID              *int               `json:"tgdb_id"`
 	FlashpointID        *int               `json:"flashpoint_id"`
 	HltbID              *int               `json:"hltb_id"`
-	GamelistID          *int               `json:"gamelist_id"`
+	GamelistID          *string            `json:"gamelist_id"`
 	PlatformID          int                `json:"platform_id"`
 	PlatformSlug        string             `json:"platform_slug"`
 	PlatformFsSlug      string             `json:"platform_fs_slug"`
