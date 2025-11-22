@@ -79,8 +79,6 @@ clean:
 
 build-port: build-aarch64-dist
 	@echo "Packaging..."
-	@rm -rf port
-	@rm rom-manager.zip
 	@mkdir -p port
 	@cp -r dist/* port/
 	@cp script/* port/
