@@ -37,3 +37,4 @@ system:
 
 platform_folder_mapping:
   genesis-slash-megadrive: genesis
+  pico: pico-8
