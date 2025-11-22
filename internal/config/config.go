@@ -71,10 +71,13 @@ type Config struct {
 	System struct {
 		MaxFPS                      int    `yaml:"max_fps"`
 		ShowFPS                     bool   `yaml:"show_fps"`
-		ImageTmpPath                string `yaml:"image_tmp_path"`
+		CachePath                   string `yaml:"cache_path"`
+		TmpPath                     string `yaml:"tmp_path"`
 		DBPath                      string `yaml:"db_path"`
 		DownloadQueueTimeoutSeconds int    `yaml:"download_queue_timeout_seconds"`
 		RomsPath                    string `yaml:"roms_path"`
+		SyncSaveStates              bool   `yaml:"sync_save_states"`
+		SaveStatesPath              string `yaml:"save_states_path"`
 	} `yaml:"system"`
 	PlatformFolderMapping map[string]string `yaml:"platform_folder_mapping"`
 }

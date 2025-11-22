@@ -27,10 +27,13 @@ theme:
 system:
   max_fps: 120
   show_fps: true
-  image_tmp_path: "tmp"
-  db_path: "db.db"
+  tmp_path: "var/tmp"
+  cache_path: "var/cache"
+  db_path: "var/db.db"
   download_queue_timeout_seconds: 120
   roms_path: "/roms"
+  sync_save_states: true
+  save_states_path: "/roms/savestates"
 
 platform_folder_mapping:
   genesis-slash-megadrive: genesis

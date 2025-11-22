@@ -7,3 +7,4 @@ config.yml
 /db.db
 /port/
 rom-manager.zip
+/var/

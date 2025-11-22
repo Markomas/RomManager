@@ -23,3 +23,8 @@ RomManager is a handheld client for the Romm App, designed to help you manage an
 
 ### Building from Source
 ....
+
+
+## License
+This project is licensed under the GNU General Public License v3.0 (GPLv3).
+See the LICENSE file for details.

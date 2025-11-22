@@ -308,7 +308,7 @@ func (r *Renderer) DrawImage(path string, x int32, y int32, width int32, height 
 		isURL := strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")
 
 		if isURL {
-			cacheDir := filepath.Join(r.config.System.ImageTmpPath, "rommanager", "images")
+			cacheDir := filepath.Join(r.config.System.CachePath, "rommanager", "images")
 			hash := sha1.New()
 			hash.Write([]byte(path))
 			ext := filepath.Ext(path)

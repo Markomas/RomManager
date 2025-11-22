@@ -1,6 +1,7 @@
 package db
 
 import (
+	"RomManager/internal/api/romm"
 	"RomManager/internal/db/entity"
 	"errors"
 	"fmt"
@@ -47,10 +48,30 @@ func (d *DB) UpdateRommDownloadJobProgress(jobId uint, progress float64) error {
 	return nil
 }
 
-func (d *DB) UpdateRommDownloadJobProgressAsCompleted(i uint, err *string) {
+func (d *DB) UpdateRommDownloadJobProgressAsCompleted(i uint, rom *romm.Rom, outputFilePath *string, erroras *string) {
 	d.db.Model(&entity.RommDownloadJob{}).Where("id =?", i).Updates(map[string]interface{}{
 		"completed":   true,
 		"locked_till": nil,
-		"error":       err,
+		"error":       erroras,
 	})
+
+	if outputFilePath == nil {
+		return
+	}
+
+	romEntity := &entity.Rom{
+		RommId:       rom.ID,
+		Name:         rom.Name,
+		FsName:       rom.FsName,
+		FsNameNoExt:  rom.FsNameNoExt,
+		Path:         *outputFilePath,
+		PlatformSlug: rom.PlatformFsSlug,
+		PlatformID:   rom.PlatformID,
+	}
+
+	d.db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "romm_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"name", "path", "platform_slug", "platform_id"}),
+	}).Create(romEntity)
+
 }
