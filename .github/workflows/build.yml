@@ -1,0 +1,31 @@
+name: Build Port
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build port package
+      run: make build-port
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: rom-manager-port
+        path: rom-manager.zip
