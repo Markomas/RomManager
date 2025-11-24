@@ -5,6 +5,7 @@ import (
 	"RomManager/internal/config"
 	"RomManager/internal/db/entity"
 	"archive/zip"
+	"crypto/md5"
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
@@ -13,6 +14,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -268,6 +270,20 @@ func calculateFileSha1(filePath string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
+func (r *Romm) CalculateFileMd5(filePath string) (string, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	hash := md5.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
 func (r *Romm) GetSaveStates(rommId int, platformId int) ([]romm.SaveState, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", strings.TrimRight(r.config.Romm.Host, "/")+fmt.Sprintf("/api/states?rom_id=%d&platform_id=%d", rommId, platformId), nil)
@@ -299,7 +315,7 @@ func (r *Romm) GetSaveStates(rommId int, platformId int) ([]romm.SaveState, erro
 
 func (r *Romm) DownloadSaveStateToTmp(state romm.SaveState, rom entity.Rom) (*string, error) {
 	destinationPath := filepath.Join(
-		r.config.System.TmpPath,
+		r.config.System.TmpSaveStatesPath,
 		"savestates",
 		fmt.Sprintf(
 			"%s/%s.state%d",
@@ -313,7 +329,44 @@ func (r *Romm) DownloadSaveStateToTmp(state romm.SaveState, rom entity.Rom) (*st
 		return nil, fmt.Errorf("creating savestate directory: %w", err)
 	}
 
-	_ = strings.TrimRight(r.config.Romm.Host, "/") + state.DownloadPath
+	baseUrl := strings.TrimRight(r.config.Romm.Host, "/")
+	downloadUrl := baseUrl + state.DownloadPath
+
+	if parts := strings.SplitN(state.DownloadPath, "?", 2); len(parts) == 2 {
+		pathPart := parts[0]
+		queryPart := parts[1]
+		downloadUrl = baseUrl + pathPart + "?" + url.QueryEscape(queryPart)
+	}
+
+	req, err := http.NewRequest("GET", downloadUrl, nil)
+	if err != nil {
+		return nil, err
+	}
+	if r.config.Romm.Username != "" && r.config.Romm.Password != "" {
+		req.SetBasicAuth(r.config.Romm.Username, r.config.Romm.Password)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to download save state, status code: %s", resp.Status)
+	}
+
+	out, err := os.Create(destinationPath)
+	if err != nil {
+		return nil, err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return nil, err
+	}
 
 	return &destinationPath, nil
 }

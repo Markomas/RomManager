@@ -6,6 +6,8 @@ import (
 	"RomManager/internal/db"
 	"RomManager/internal/db/entity"
 	"fmt"
+	"os"
+	"path/filepath"
 )
 
 type SaveStateSync struct {
@@ -43,19 +45,44 @@ func (s SaveStateSync) downloadRemoteSaveState(rom entity.Rom) {
 			continue
 		}
 
-		_, err = s.api.DownloadSaveStateToTmp(saveState, rom)
+		saveTmpPath, err := s.api.DownloadSaveStateToTmp(saveState, rom)
 		if err != nil {
-			return
+			continue
 		}
 
-		//saveState := &entity.SaveState{
-		//	RommID:           rom.RommId,
-		//	FileName:         saveState.FileName,
-		//	LocalPath:        saveState.LocalPath,
-		//	VersionUpdatedAt: saveState.VersionUpdatedAt,
-		//	Md5Hash:          saveState.Md5Hash,
-		//}
-		//state, err := s.db.GetSaveState(saveState.ID)
+		md5Hash, err := s.api.CalculateFileMd5(*saveTmpPath)
+		if err != nil {
+			fmt.Println("Error calculating md5 for %s: %v", *saveTmpPath, err)
+			continue
+		}
+
+		fmt.Println("Downloaded save state %s to %s", saveState.FileName, *saveTmpPath)
+
+		localSaveState := &entity.SaveState{
+			RomID:            rom.ID,
+			RommID:           rom.RommId,
+			FileName:         saveState.FileName,
+			LocalPath:        saveTmpPath,
+			VersionUpdatedAt: saveState.UpdatedAt,
+			Md5Hash:          md5Hash,
+		}
+		_, err = s.db.GetSaveStateByHash(localSaveState.Md5Hash)
+		if err == nil {
+			continue
+		}
+
+		destinationPath := filepath.Join(s.config.System.SaveStatesPath, filepath.Base(*saveTmpPath))
+		if err := os.MkdirAll(filepath.Dir(destinationPath), 0o755); err != nil {
+			fmt.Printf("Error creating destination directory: %v\n", err)
+			continue
+		}
+		if err := os.Rename(*saveTmpPath, destinationPath); err != nil {
+			fmt.Printf("Error moving file: %v\n", err)
+			continue
+		}
+		s.db.AddSaveState(localSaveState)
+		fmt.Printf("Saved new save state %s for rom %d\n", saveState.FileName, rom.RommId)
 
 	}
+
 }

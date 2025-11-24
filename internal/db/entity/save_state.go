@@ -8,8 +8,9 @@ import (
 
 type SaveState struct {
 	gorm.Model
+	RomID            uint
+	Rom              Rom `gorm:"foreignKey:RomID"`
 	RommID           int `gorm:"unique"`
-	Rom              Rom
 	FileName         string
 	LocalPath        *string
 	VersionUpdatedAt time.Time

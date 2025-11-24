@@ -28,7 +28,7 @@ func New(c *config.Config) (*DB, error) {
 		panic("failed to connect database")
 	}
 
-	err = db.AutoMigrate(&entity.RommDownloadJob{}, &entity.Rom{})
+	err = db.AutoMigrate(&entity.RommDownloadJob{}, &entity.Rom{}, &entity.SaveState{})
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func (d *DB) Close() {
 
 func (d *DB) GetRommDownloadJobs() ([]entity.RommDownloadJob, error) {
 	var job []entity.RommDownloadJob
-	err := d.db.Order("completed ASC, progress ASC, id DESC").Find(&job).Error
+	err := d.db.Order("completed ASC, updated_at DESC").Find(&job).Error
 	return job, err
 }
 
@@ -52,7 +52,16 @@ func (d *DB) GetAllRoms() []entity.Rom {
 	return roms
 }
 
-func (d *DB) GetSaveState(id int) (*entity.SaveState, error) {
+func (d *DB) GetSaveStateByHash(md5Hash string) (*entity.SaveState, error) {
 	saveState := &entity.SaveState{}
-	return saveState, d.db.Where("romm_id =?", id).First(saveState).Error
+	err := d.db.Where("md5_hash =?", md5Hash).First(saveState).Error
+	if err != nil {
+		return nil, err
+	}
+	return saveState, nil
+}
+
+func (d *DB) AddSaveState(state *entity.SaveState) *entity.SaveState {
+	d.db.Create(state)
+	return state
 }

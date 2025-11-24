@@ -78,6 +78,7 @@ type Config struct {
 		RomsPath                    string `yaml:"roms_path"`
 		SyncSaveStates              bool   `yaml:"sync_save_states"`
 		SaveStatesPath              string `yaml:"save_states_path"`
+		TmpSaveStatesPath           string `yaml:"tmp_save_states_path"`
 	} `yaml:"system"`
 	PlatformFolderMapping map[string]string `yaml:"platform_folder_mapping"`
 }
