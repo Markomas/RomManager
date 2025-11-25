@@ -2,16 +2,9 @@ package ui
 
 import (
 	"RomManager/internal/config"
-	"crypto/sha1"
-	"encoding/hex"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/veandco/go-sdl2/img"
@@ -20,15 +13,14 @@ import (
 )
 
 type Renderer struct {
-	renderer           *sdl.Renderer
-	window             *sdl.Window
-	config             *config.Config
-	fontCache          map[string]*ttf.Font
-	textCache          map[textKey]*textTexture
-	imageCache         map[string]*sdl.Texture
-	scrollTracker      map[textKey]time.Time
-	downloadingImages  map[string]bool
-	downloadingImagesM sync.Mutex
+	renderer         *sdl.Renderer
+	window           *sdl.Window
+	config           *config.Config
+	fontCache        map[string]*ttf.Font
+	textCache        map[textKey]*textTexture
+	imageCache       map[string]*sdl.Texture
+	scrollTracker    map[textKey]time.Time
+	imageDownloadJob *ImageDownloadJob
 }
 
 type textKey struct {
@@ -46,14 +38,14 @@ type textTexture struct {
 
 func New(renderer *sdl.Renderer, w *sdl.Window, c *config.Config) *Renderer {
 	return &Renderer{
-		renderer:          renderer,
-		window:            w,
-		config:            c,
-		fontCache:         make(map[string]*ttf.Font),
-		textCache:         make(map[textKey]*textTexture),
-		imageCache:        make(map[string]*sdl.Texture),
-		scrollTracker:     make(map[textKey]time.Time),
-		downloadingImages: make(map[string]bool),
+		renderer:         renderer,
+		window:           w,
+		config:           c,
+		fontCache:        make(map[string]*ttf.Font),
+		textCache:        make(map[textKey]*textTexture),
+		imageCache:       make(map[string]*sdl.Texture),
+		scrollTracker:    make(map[textKey]time.Time),
+		imageDownloadJob: NewImageDownloadJob(c),
 	}
 }
 
@@ -245,54 +237,6 @@ func (r *Renderer) DrawRect(x int32, pos int32, width int32, height int32, color
 	r.renderer.FillRect(&rect)
 }
 
-func (r *Renderer) downloadImage(url, localPath, cacheDir string) {
-	defer func() {
-		r.downloadingImagesM.Lock()
-		delete(r.downloadingImages, url)
-		r.downloadingImagesM.Unlock()
-	}()
-
-	if err := os.MkdirAll(cacheDir, 0755); err != nil {
-		log.Printf("Failed to create image cache directory %s: %v", cacheDir, err)
-		return
-	}
-
-	tempPath := localPath + ".tmp"
-	// Ensure the temporary file is removed on exit, especially if an error occurs
-	defer os.Remove(tempPath)
-
-	resp, err := http.Get(url)
-	if err != nil {
-		log.Printf("Failed to download image from %s: %v", url, err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		log.Printf("Failed to download image from %s: status code %d", url, resp.StatusCode)
-		return
-	}
-
-	outFile, err := os.Create(tempPath)
-	if err != nil {
-		log.Printf("Failed to create temporary file %s: %v", tempPath, err)
-		return
-	}
-
-	_, err = io.Copy(outFile, resp.Body)
-	// Close the file handle before attempting to rename it.
-	outFile.Close()
-	if err != nil {
-		log.Printf("Failed to save image to %s: %v", tempPath, err)
-		return
-	}
-
-	// Atomically rename the temporary file to the final path.
-	if err := os.Rename(tempPath, localPath); err != nil {
-		log.Printf("Failed to rename temporary file %s to %s: %v", tempPath, localPath, err)
-	}
-}
-
 func (r *Renderer) DrawImage(path string, x int32, y int32, width int32, height int32) {
 	if path == "" {
 		return
@@ -308,34 +252,12 @@ func (r *Renderer) DrawImage(path string, x int32, y int32, width int32, height 
 		isURL := strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")
 
 		if isURL {
-			cacheDir := filepath.Join(r.config.System.CachePath, "rommanager", "images")
-			hash := sha1.New()
-			hash.Write([]byte(path))
-			ext := filepath.Ext(path)
-			if strings.Contains(ext, ".php") {
-				ext = ".png"
-			}
-			fileName := hex.EncodeToString(hash.Sum(nil)) + ext
-			localPath := filepath.Join(cacheDir, fileName)
-			imageLoadPath = localPath
-
-			// 2. Check if file exists locally
-			if _, err := os.Stat(localPath); os.IsNotExist(err) {
-				// 3. File does not exist, check if it's downloading
-				r.downloadingImagesM.Lock()
-				isDownloading := r.downloadingImages[path]
-				r.downloadingImagesM.Unlock()
-
-				if !isDownloading {
-					// 4. Not downloading, so start download in background
-					r.downloadingImagesM.Lock()
-					r.downloadingImages[path] = true
-					r.downloadingImagesM.Unlock()
-					go r.downloadImage(path, localPath, cacheDir)
-				}
-				// In either case (downloading or just started), return for this frame
+			if !r.imageDownloadJob.CheckIfFileIsDownloaded(path) {
+				go r.imageDownloadJob.AddDownloadJob(path)
+				r.imageDownloadJob.Start()
 				return
 			}
+			imageLoadPath = r.imageDownloadJob.UrlToLocalPath(path)
 		}
 
 		// 5. Load from disk (either local file or downloaded file)

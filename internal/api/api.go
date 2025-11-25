@@ -93,7 +93,6 @@ func (r *Romm) GetRomsByPlatform(id int, offset int, perPage int) (romm.Roms, in
 	if err != nil {
 		return nil, 0, err
 	}
-	log.Println(string(body))
 	var roms romm.RomsResponse
 	err = json.Unmarshal(body, &roms)
 	if err != nil {
