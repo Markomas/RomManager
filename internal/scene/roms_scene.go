@@ -69,6 +69,16 @@ func NewRomsScene(id int, renderer *ui.Renderer, c *config.Config, router SceneM
 	previewImageLayoutElement := &ui.LayoutElement{FullWidth: true, FullHeight: true, UiElement: previewImage}
 	previewLayout.(*ui.VerticalLayout).AddElement(previewImageLayoutElement)
 
+	previewRomTitleText := ui.NewText("",
+		renderer,
+		c,
+		c.Theme.TextColor,
+		19,
+		ui.AlignLeft,
+		ui.AlignVerticalTop)
+	previewTitleLayoutElement := &ui.LayoutElement{FullWidth: true, Height: 30, UiElement: previewRomTitleText}
+	previewLayout.(*ui.VerticalLayout).AddElement(previewTitleLayoutElement)
+
 	previewDescription := ui.NewText(
 		"",
 		renderer,
@@ -122,7 +132,7 @@ func NewRomsScene(id int, renderer *ui.Renderer, c *config.Config, router SceneM
 			for _, rom := range roms {
 				offset += 1
 				list.(*ui.List).AddItem(
-					fmt.Sprintf("%s (%s)", rom.Name, formatBytes(rom.FsSizeBytes)),
+					fmt.Sprintf("%s (%s)", rom.FsName, formatBytes(rom.FsSizeBytes)),
 					func() {
 						d.AddRom(rom)
 						footer.(*ui.Footer).SetText(fmt.Sprintf("Scheduled download for %s", rom.Name))
@@ -138,7 +148,9 @@ func NewRomsScene(id int, renderer *ui.Renderer, c *config.Config, router SceneM
 						} else {
 							previewImageLayoutElement.Hidden = true
 						}
+
 						previewDescription.(*ui.Text).SetText(rom.Summary)
+						previewRomTitleText.(*ui.Text).SetText(rom.Name)
 						r.previewPanelRom = &rom
 					},
 				)

@@ -22,7 +22,7 @@ theme:
   footer_background_color: "#778873"
   image_background_color: "#D2DCB6"
   text_background_color: "#778873"
-  text_padding: 10
+  text_padding: 5
 
 system:
   max_fps: 120
