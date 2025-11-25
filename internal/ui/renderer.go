@@ -254,7 +254,7 @@ func (r *Renderer) DrawImage(path string, x int32, y int32, width int32, height 
 		if isURL {
 			if !r.imageDownloadJob.CheckIfFileIsDownloaded(path) {
 				go r.imageDownloadJob.AddDownloadJob(path)
-				r.imageDownloadJob.Start()
+				go r.imageDownloadJob.Start()
 				return
 			}
 			imageLoadPath = r.imageDownloadJob.UrlToLocalPath(path)
